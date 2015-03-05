@@ -165,7 +165,7 @@ type EntToEndUpdate a = CTime Time | CPiece (Piece ForATime a)
 {-| Create a signal by chaining together Pieces end-to-end.
     The first argument (perhaps should be a -> Piece Forever a) -}
 
-endToEnd : Piece Forever a -> Signal (Stage ForATime a) -> Signal Time -> Signal a
+endToEnd : Piece Forever a -> Signal (Piece ForATime a) -> Signal Time -> Signal a
 endToEnd (I.Piece _ gap) =
   let update u (x, t0, s, pieces) =
         let (I.Piece (I.ForATime d) f) = s in
