@@ -1,4 +1,4 @@
-module Stage.Infix
+module Piece.Infix
   ( (<>)
   , (+>)
   , (>+>)
@@ -8,20 +8,20 @@ module Stage.Infix
 @docs (<>), (+>), (>+>)
 -}
 
-import Stage(..)
+import Piece(..)
 
-{-| (<>) = Stage.followedBy -}
-(<>) : Stage ForATime a -> Stage t a -> Stage t a
+{-| (<>) = Piece.followedBy -}
+(<>) : Piece ForATime a -> Piece t a -> Piece t a
 (<>) = followedBy
 
 infixl 9 <>
 
-{-| (+>) = Stage.chainTo -}
-(+>) : Stage ForATime a -> (a -> Stage t a) -> Stage t a
+{-| (+>) = Piece.chainTo -}
+(+>) : Piece ForATime a -> (a -> Piece t a) -> Piece t a
 (+>) = chainTo
 
 {-| (>+>) f g = \x -> f x +> g -}
-(>+>) : (a -> Stage ForATime a) -> (a -> Stage t a) -> (a -> Stage t a)
+(>+>) : (a -> Piece ForATime a) -> (a -> Piece t a) -> (a -> Piece t a)
 (>+>) f g = \x -> f x +> g
 
 infixl 9 +>

@@ -1,11 +1,11 @@
-module Stage.Internal where
+module Piece.Internal where
 
-{-| Internal implementation of Stage if you need access to it.
+{-| Internal implementation of Piece if you need access to it.
     This is all subject to change. -}
 
 import Time (Time)
 
 type Duration = ForATime Time | Forever
 
-type Stage t a = Stage Duration (Time -> a)
+type Piece t a = Piece Duration (Time -> a)
 
