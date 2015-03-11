@@ -15,6 +15,7 @@ module Piece
   , run
   , finalValue
   , endToEnd
+  , layer
   ) where
 
 {-| A type and functions on it for building up values as a function of time.
@@ -51,10 +52,13 @@ of a circle in an animation.
 
 import Piece.Internal as I
 import Queue
+import Queue.Internal(..)
 import Signal
 import Time(Time)
 import Time
-import Debug
+import List
+import List ((::))
+import Debug (crash)
 
 modFloat : Float -> Float -> Float
 modFloat x m = x - m * toFloat (floor (x / m))
@@ -111,7 +115,7 @@ cycle : Piece ForATime a -> Piece Forever a
 cycle (I.Piece dur f) =
   case dur of
     I.ForATime d -> I.Piece I.Forever (\t -> f (modFloat t d))
-    _            -> Debug.crash "The impossible happened: Piece.cycle"
+    _            -> crash "The impossible happened: Piece.cycle"
 
 map : (a -> b) -> Piece t a -> Piece t b
 map g (I.Piece dur f) = I.Piece dur (g << f)
@@ -138,7 +142,7 @@ followedBy (I.Piece dur1 f1) (I.Piece dur2 f2) =
   case (dur1, dur2) of
     (I.ForATime d1, I.Forever)     -> I.Piece I.Forever (mkF d1 f1 f2)
     (I.ForATime d1, I.ForATime d2) -> I.Piece (I.ForATime (d1 + d2)) (mkF d1 f1 f2)
-    (I.Forever, _)                 -> Debug.crash "The impossible happened: Piece.followedBy"
+    (I.Forever, _)                 -> crash "The impossible happened: Piece.followedBy"
 
 {-| Create a sequence of two Pieces, giving the second access to the
 final value of the first. For example,
@@ -152,7 +156,7 @@ chainTo : Piece ForATime a -> (a -> Piece t a) -> Piece t a
 chainTo (I.Piece dur f) g =
   case dur of
     I.ForATime d -> I.Piece dur f `followedBy` g (f d)
-    _          -> Debug.crash "The impossible happened: Piece.chainTo"
+    _          -> crash "The impossible happened: Piece.chainTo"
 
 {-| Convert a Signal of `Piece`s into a `Signal` by sampling using the given
 `Signal Time`. -}
@@ -165,7 +169,7 @@ type EntToEndUpdate a = CTime Time | CPiece (Piece ForATime a)
 {-| Create a signal by chaining together Pieces end-to-end.
     The first argument (perhaps should be a -> Piece Forever a) -}
 
-endToEnd : Piece Forever a -> Signal (Piece ForATime a) -> Signal Time -> Signal a
+endToEnd : Piece Forever a -> Signal Time -> Signal (Piece ForATime a) -> Signal a
 endToEnd (I.Piece _ gap) =
   let update u (x, t0, s, pieces) =
         let (I.Piece (I.ForATime d) f) = s in
@@ -175,8 +179,41 @@ endToEnd (I.Piece _ gap) =
             Just (s', pieces') -> let (I.Piece _ g) = s' in (g t, t, s', pieces')
           CPiece s' -> (x, t0, s, Queue.push s' pieces) -- should really filter out this event
   in
-  \ss ts ->
+  \ts ss ->
     Signal.foldp update (gap 0, 0, for 0 gap, Queue.empty) {-dummy args-}
       (Signal.merge (Signal.map CPiece ss) (Signal.map CTime ts))
     |> Signal.map (\(x,_,_,_) -> x)
+
+duration : Piece ForATime a -> Time
+duration (I.Piece (I.ForATime d) _) = d
+
+type TwoThings a b
+  = TheOneThing a
+  | TheOtherThing b
+-- layered old to new
+layer : Signal Time -> Signal (Piece ForATime a) -> Signal (List a)
+layer tSig pSig =
+  let update u (ps, tCurr, _) = case u of
+        TheOneThing t     -> (List.filter (\(tp, p) -> (t - tp) < duration p) ps, t, True)
+        TheOtherThing tp' -> (tp' :: ps, tCurr, False)
+  in
+  Signal.foldp update ([], 0, False)
+    (Signal.merge (Signal.map TheOtherThing (Time.timestamp pSig))
+      (Signal.map TheOneThing tSig))
+  |> filterMap (\(ps, t, ticked) ->
+       if ticked then Just (List.map (\(t0, I.Piece _ f) -> f (t - t0)) ps) else Nothing)
+       []
+
+popTil : (a -> Bool) -> Queue a -> Maybe (a, Queue a)
+popTil f =
+  let go q = case Queue.pop q of
+        Just (x, q') -> if f x then Just (x, q') else go q'
+        Nothing      -> Nothing
+  in
+  go
+
+filterMap f x s =
+  Signal.map f s
+  |> Signal.keepIf (\v -> case v of {Just _ -> True; _ -> False}) (Just x)
+  |> Signal.map (\v -> case v of Just a -> a)
 
