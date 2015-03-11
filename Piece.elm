@@ -163,7 +163,7 @@ run : Signal Time -> Signal (Piece Forever a) -> Signal a
 run ts s =
   Signal.map2 (\(t0, I.Piece _ f) t -> f (t - t0)) (Signal.map2 (,) (Signal.sampleOn s ts) s) ts
 
-type EntToEndUpdate a = CTime Time | CPiece (Piece ForATime a)
+type EndToEndUpdate a = CTime Time | CPiece (Piece ForATime a)
 
 {-| Create a signal by chaining together Pieces end-to-end.
     The first argument (perhaps should be a -> Piece Forever a) -}
