@@ -8,7 +8,7 @@ module Piece.Infix
 @docs (<>), (+>), (>+>)
 -}
 
-import Piece(..)
+import Piece exposing (..)
 
 {-| (<>) = Piece.followedBy -}
 (<>) : Piece ForATime a -> Piece t a -> Piece t a

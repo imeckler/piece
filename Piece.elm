@@ -51,13 +51,13 @@ of a circle in an animation.
 
 import Piece.Internal as I
 import Queue
-import Queue.Internal(..)
+import Queue.Internal exposing (..)
 import Signal
-import Time(Time)
+import Time exposing (Time)
 import Time
 import List
-import List ((::))
-import Debug (crash)
+import List exposing ((::))
+import Debug exposing (crash)
 
 modFloat : Float -> Float -> Float
 modFloat x m = x - m * toFloat (floor (x / m))
@@ -212,6 +212,6 @@ popTil f =
 
 filterMap f x s =
   Signal.map f s
-  |> Signal.keepIf (\v -> case v of {Just _ -> True; _ -> False}) (Just x)
+  |> Signal.filter (\v -> case v of {Just _ -> True; _ -> False}) (Just x)
   |> Signal.map (\v -> case v of Just a -> a)
 

@@ -3,7 +3,7 @@ module Piece.Internal where
 {-| Internal implementation of Piece if you need access to it.
     This is all subject to change. -}
 
-import Time (Time)
+import Time exposing (Time)
 
 type Duration = ForATime Time | Forever
 
